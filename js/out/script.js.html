@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: script.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: script.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// Mengambil data tabungan dari localStorage atau inisialisasi array kosong
+let tabunganList = JSON.parse(localStorage.getItem('tabunganList')) || [];
+let currentIndex = null;
+let currentAction = null;
+
+/**
+ * Event listener untuk tombol kirim di form tabungan.
+ * @param {Event} event - Event yang dipicu oleh klik tombol kirim.
+ */
+btnKirim.addEventListener('click', (event) => {
+    event.preventDefault();
+
+    const nama = document.getElementById('nama').value.trim();
+    const nominal = document.getElementById('nominal').value.trim();
+    const kelas = document.getElementById('kelas').value.trim();
+    const jurusan = document.getElementById('jurusan').value.trim();
+
+    // Validasi input
+    if (nama === "" || nominal === "" || kelas === "" || jurusan === "") {
+        showAlert('Semua data harus diisi.');
+        return;
+    }
+
+    // Mengecek apakah data sudah ada
+    const isDuplicate = tabunganList.some(tabungan => tabungan.nama.toLowerCase() === nama.toLowerCase() &amp;&amp; tabungan.kelas === kelas &amp;&amp; tabungan.jurusan === jurusan);
+
+    if (isDuplicate) {
+        showAlert('Data sudah terdaftar.');
+        return;
+    }
+
+    // Menambahkan data tabungan baru ke array
+    const tabungan = { nama, nominal: parseInt(nominal), kelas, jurusan };
+    tabunganList.push(tabungan);
+    updateLocalStorage(); 
+    displayTabungan(); 
+
+    form.reset();
+});
+
+/**
+ * Event listener untuk input pencarian.
+ */
+searchInput.addEventListener('input', function () {
+    displayTabungan();
+});
+
+/**
+ * Event listener untuk filter kelas.
+ */
+filterKelas.addEventListener('change', function () {
+    displayTabungan();
+});
+
+/**
+ * Event listener untuk tombol tutup popup.
+ */
+closePopup.addEventListener('click', function () {
+    popup.style.display = 'none';
+});
+
+/**
+ * Event listener untuk tombol di popup.
+ */
+popupButton.addEventListener('click', function () {
+    const nominal = parseInt(popupNominal.value);
+    if (isNaN(nominal) || nominal &lt;= 0) {
+        showAlert('Nominal harus berupa angka positif');
+        return;
+    }
+
+    // Menambahkan atau mengurangi nominal tabungan
+    if (currentAction === 'add') {
+        tabunganList[currentIndex].nominal += nominal;
+    } else if (currentAction === 'subtract') {
+        tabunganList[currentIndex].nominal -= nominal;
+    }
+
+    updateLocalStorage();
+    displayTabungan();
+    popup.style.display = 'none';
+    popupNominal.value = '';
+});
+
+/**
+ * Event listener untuk tombol tutup peringatan.
+ */
+closeWarningPopup.addEventListener('click', function () {
+    warningPopup.style.display = 'none';
+});
+
+/**
+ * Menampilkan data tabungan.
+ */
+function displayTabungan() {
+    const searchText = searchInput.value.toLowerCase();
+    const selectedKelas = filterKelas.value;
+    tableBody.innerHTML = '';
+
+    // Menampilkan data tabungan yang sesuai dengan pencarian dan filter kelas
+    tabunganList
+        .filter(t => t.nama.toLowerCase().includes(searchText) &amp;&amp; (selectedKelas === "" || t.kelas === selectedKelas))
+        .forEach((tabungan, index) => {
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                &lt;td>${tabungan.nama}&lt;/td>
+                &lt;td>${tabungan.nominal}&lt;/td>
+                &lt;td>${tabungan.kelas}&lt;/td>
+                &lt;td>${tabungan.jurusan}&lt;/td>
+                &lt;td>
+                    &lt;button data-index="${index}" data-action="add">Tambah&lt;/button>
+                    &lt;button data-index="${index}" data-action="subtract">Kurangi&lt;/button>
+                    &lt;button data-index="${index}" class="delete">Hapus&lt;/button>
+                &lt;/td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+
+    // Tambahkan event listener untuk tombol Tambah, Kurangi, dan Hapus
+    document.querySelectorAll('button[data-action="add"]').forEach(button => {
+        button.addEventListener('click', function () {
+            showPopup(this.dataset.index, 'add');
+        });
+    });
+
+    document.querySelectorAll('button[data-action="subtract"]').forEach(button => {
+        button.addEventListener('click', function () {
+            showPopup(this.dataset.index, 'subtract');
+        });
+    });
+
+    document.querySelectorAll('.delete').forEach(button => {
+        button.addEventListener('click', function () {
+            deleteTabungan(this.dataset.index);
+        });
+    });
+}
+
+/**
+ * Menampilkan popup.
+ * @param {number} index - Index dari tabungan yang dipilih.
+ * @param {string} action - Aksi yang akan dilakukan ('add' atau 'subtract').
+ */
+function showPopup(index, action) {
+    currentIndex = index;
+    currentAction = action;
+    popupTitle.textContent = action === 'add' ? 'Tambah Tabungan' : 'Kurangi Tabungan';
+    popup.style.display = 'flex';
+}
+
+/**
+ * Menghapus data tabungan.
+ * @param {number} index - Index dari tabungan yang akan dihapus.
+ */
+function deleteTabungan(index) {
+    tabunganList.splice(index, 1);
+    updateLocalStorage();
+    displayTabungan();
+}
+
+/**
+ * Memperbarui localStorage dengan data tabungan.
+ */
+function updateLocalStorage() {
+    localStorage.setItem('tabunganList', JSON.stringify(tabunganList));
+}
+
+/**
+ * Menampilkan pesan peringatan.
+ * @param {string} message - Pesan peringatan yang akan ditampilkan.
+ */
+function showAlert(message) {
+    warningMessage.textContent = message;
+    warningPopup.style.display = 'flex';
+}
+
+// Menampilkan data tabungan saat halaman dimuat
+displayTabungan();
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#deleteTabungan">deleteTabungan</a></li><li><a href="global.html#displayTabungan">displayTabungan</a></li><li><a href="global.html#showAlert">showAlert</a></li><li><a href="global.html#showPopup">showPopup</a></li><li><a href="global.html#updateLocalStorage">updateLocalStorage</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.3</a> on Tue Jun 18 2024 19:23:23 GMT+0700 (Indochina Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
