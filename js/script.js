@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Mengambil data tabungan dari localStorage atau inisialisasi array kosong
     let tabunganList = JSON.parse(localStorage.getItem('tabunganList')) || [];
-    let currentIndex = null;
+    let currentId = null;
     let currentAction = null;
 
     /**
@@ -51,10 +51,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Menambahkan data tabungan baru ke array
-        const tabungan = { nama, nominal: parseInt(nominal), kelas, jurusan };
+        const id = tabunganList.length ? tabunganList[tabunganList.length - 1].id + 1 : 1;
+        const tabungan = { id, nama, nominal: parseInt(nominal), kelas, jurusan };
         tabunganList.push(tabungan);
-        updateLocalStorage(); 
-        displayTabungan(); 
+        updateLocalStorage();
+        displayTabungan();
 
         form.reset();
     });
@@ -92,9 +93,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Menambahkan atau mengurangi nominal tabungan
         if (currentAction === 'add') {
-            tabunganList[currentIndex].nominal += nominal;
+            const tabungan = tabunganList.find(tabungan => tabungan.id == currentId);
+            tabungan.nominal += nominal;
         } else if (currentAction === 'subtract') {
-            tabunganList[currentIndex].nominal -= nominal;
+            const tabungan = tabunganList.find(tabungan => tabungan.id == currentId);
+            if (tabungan.nominal < nominal) {
+                showAlert('Nominal tidak mencukupi untuk dikurangi');
+                return;
+            }
+            tabungan.nominal -= nominal;
         }
 
         updateLocalStorage();
@@ -121,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Menampilkan data tabungan yang sesuai dengan pencarian dan filter kelas
         tabunganList
             .filter(t => t.nama.toLowerCase().includes(searchText) && (selectedKelas === "" || t.kelas === selectedKelas))
-            .forEach((tabungan, index) => {
+            .forEach(tabungan => {
                 const row = document.createElement('tr');
 
                 row.innerHTML = `
@@ -130,9 +137,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>${tabungan.kelas}</td>
                     <td>${tabungan.jurusan}</td>
                     <td>
-                        <button data-index="${index}" data-action="add">Tambah</button>
-                        <button data-index="${index}" data-action="subtract">Kurangi</button>
-                        <button data-index="${index}" class="delete">Hapus</button>
+                        <button data-id="${tabungan.id}" data-action="add">Tambah</button>
+                        <button data-id="${tabungan.id}" data-action="subtract">Kurangi</button>
+                        <button data-id="${tabungan.id}" class="delete">Hapus</button>
                     </td>
                 `;
 
@@ -142,30 +149,30 @@ document.addEventListener('DOMContentLoaded', function () {
         // Tambahkan event listener untuk tombol Tambah, Kurangi, dan Hapus
         document.querySelectorAll('button[data-action="add"]').forEach(button => {
             button.addEventListener('click', function () {
-                showPopup(this.dataset.index, 'add');
+                showPopup(this.dataset.id, 'add');
             });
         });
 
         document.querySelectorAll('button[data-action="subtract"]').forEach(button => {
             button.addEventListener('click', function () {
-                showPopup(this.dataset.index, 'subtract');
+                showPopup(this.dataset.id, 'subtract');
             });
         });
 
         document.querySelectorAll('.delete').forEach(button => {
             button.addEventListener('click', function () {
-                deleteTabungan(this.dataset.index);
+                deleteTabungan(this.dataset.id);
             });
         });
     }
 
     /**
      * Menampilkan popup.
-     * @param {number} index - Index dari tabungan yang dipilih.
+     * @param {number} id - ID dari tabungan yang dipilih.
      * @param {string} action - Aksi yang akan dilakukan ('add' atau 'subtract').
      */
-    function showPopup(index, action) {
-        currentIndex = index;
+    function showPopup(id, action) {
+        currentId = parseInt(id); // memastikan currentId adalah angka
         currentAction = action;
         popupTitle.textContent = action === 'add' ? 'Tambah Tabungan' : 'Kurangi Tabungan';
         popup.style.display = 'flex';
@@ -173,12 +180,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /**
      * Menghapus data tabungan.
-     * @param {number} index - Index dari tabungan yang akan dihapus.
+     * @param {number} id - ID dari tabungan yang akan dihapus.
      */
-    function deleteTabungan(index) {
-        tabunganList.splice(index, 1);
-        updateLocalStorage();
-        displayTabungan();
+    function deleteTabungan(id) {
+        const index = tabunganList.findIndex(tabungan => tabungan.id == id);
+        if (index !== -1) {
+            tabunganList.splice(index, 1);
+            updateLocalStorage();
+            displayTabungan();
+        }
     }
 
     /**
@@ -199,4 +209,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Menampilkan data tabungan saat halaman dimuat
     displayTabungan();
+
 });

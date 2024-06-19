@@ -26,186 +26,203 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>// Mengambil data tabungan dari localStorage atau inisialisasi array kosong
-let tabunganList = JSON.parse(localStorage.getItem('tabunganList')) || [];
-let currentIndex = null;
-let currentAction = null;
-
-/**
- * Event listener untuk tombol kirim di form tabungan.
- * @param {Event} event - Event yang dipicu oleh klik tombol kirim.
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview Script untuk mengelola data tabungan siswa menggunakan DOM, localStorage, dan event handling.
  */
-btnKirim.addEventListener('click', (event) => {
-    event.preventDefault();
 
-    const nama = document.getElementById('nama').value.trim();
-    const nominal = document.getElementById('nominal').value.trim();
-    const kelas = document.getElementById('kelas').value.trim();
-    const jurusan = document.getElementById('jurusan').value.trim();
 
-    // Validasi input
-    if (nama === "" || nominal === "" || kelas === "" || jurusan === "") {
-        showAlert('Semua data harus diisi.');
-        return;
-    }
 
-    // Mengecek apakah data sudah ada
-    const isDuplicate = tabunganList.some(tabungan => tabungan.nama.toLowerCase() === nama.toLowerCase() &amp;&amp; tabungan.kelas === kelas &amp;&amp; tabungan.jurusan === jurusan);
+    // Mengambil data tabungan dari localStorage atau inisialisasi array kosong
+    let tabunganList = JSON.parse(localStorage.getItem('tabunganList')) || [];
+    let currentId = null;
+    let currentAction = null;
 
-    if (isDuplicate) {
-        showAlert('Data sudah terdaftar.');
-        return;
-    }
+    /**
+     * Event listener untuk tombol kirim di form tabungan.
+     * @param {Event} event - Event yang dipicu oleh klik tombol kirim.
+     */
+    btnKirim.addEventListener('click', (event) => {
+        event.preventDefault();
 
-    // Menambahkan data tabungan baru ke array
-    const tabungan = { nama, nominal: parseInt(nominal), kelas, jurusan };
-    tabunganList.push(tabungan);
-    updateLocalStorage(); 
-    displayTabungan(); 
+        const nama = document.getElementById('nama').value.trim();
+        const nominal = document.getElementById('nominal').value.trim();
+        const kelas = document.getElementById('kelas').value.trim();
+        const jurusan = document.getElementById('jurusan').value.trim();
 
-    form.reset();
-});
+        // Validasi input
+        if (nama === "" || nominal === "" || kelas === "" || jurusan === "") {
+            showAlert('Semua data harus diisi.');
+            return;
+        }
 
-/**
- * Event listener untuk input pencarian.
- */
-searchInput.addEventListener('input', function () {
-    displayTabungan();
-});
+        // Mengecek apakah data sudah ada
+        const isDuplicate = tabunganList.some(tabungan => tabungan.nama.toLowerCase() === nama.toLowerCase() &amp;&amp; tabungan.kelas === kelas &amp;&amp; tabungan.jurusan === jurusan);
 
-/**
- * Event listener untuk filter kelas.
- */
-filterKelas.addEventListener('change', function () {
-    displayTabungan();
-});
+        if (isDuplicate) {
+            showAlert('Data sudah terdaftar.');
+            return;
+        }
 
-/**
- * Event listener untuk tombol tutup popup.
- */
-closePopup.addEventListener('click', function () {
-    popup.style.display = 'none';
-});
+        // Menambahkan data tabungan baru ke array
+        const id = tabunganList.length ? tabunganList[tabunganList.length - 1].id + 1 : 1;
+        const tabungan = { id, nama, nominal: parseInt(nominal), kelas, jurusan };
+        tabunganList.push(tabungan);
+        updateLocalStorage(); 
+        displayTabungan(); 
 
-/**
- * Event listener untuk tombol di popup.
- */
-popupButton.addEventListener('click', function () {
-    const nominal = parseInt(popupNominal.value);
-    if (isNaN(nominal) || nominal &lt;= 0) {
-        showAlert('Nominal harus berupa angka positif');
-        return;
-    }
-
-    // Menambahkan atau mengurangi nominal tabungan
-    if (currentAction === 'add') {
-        tabunganList[currentIndex].nominal += nominal;
-    } else if (currentAction === 'subtract') {
-        tabunganList[currentIndex].nominal -= nominal;
-    }
-
-    updateLocalStorage();
-    displayTabungan();
-    popup.style.display = 'none';
-    popupNominal.value = '';
-});
-
-/**
- * Event listener untuk tombol tutup peringatan.
- */
-closeWarningPopup.addEventListener('click', function () {
-    warningPopup.style.display = 'none';
-});
-
-/**
- * Menampilkan data tabungan.
- */
-function displayTabungan() {
-    const searchText = searchInput.value.toLowerCase();
-    const selectedKelas = filterKelas.value;
-    tableBody.innerHTML = '';
-
-    // Menampilkan data tabungan yang sesuai dengan pencarian dan filter kelas
-    tabunganList
-        .filter(t => t.nama.toLowerCase().includes(searchText) &amp;&amp; (selectedKelas === "" || t.kelas === selectedKelas))
-        .forEach((tabungan, index) => {
-            const row = document.createElement('tr');
-
-            row.innerHTML = `
-                &lt;td>${tabungan.nama}&lt;/td>
-                &lt;td>${tabungan.nominal}&lt;/td>
-                &lt;td>${tabungan.kelas}&lt;/td>
-                &lt;td>${tabungan.jurusan}&lt;/td>
-                &lt;td>
-                    &lt;button data-index="${index}" data-action="add">Tambah&lt;/button>
-                    &lt;button data-index="${index}" data-action="subtract">Kurangi&lt;/button>
-                    &lt;button data-index="${index}" class="delete">Hapus&lt;/button>
-                &lt;/td>
-            `;
-
-            tableBody.appendChild(row);
-        });
-
-    // Tambahkan event listener untuk tombol Tambah, Kurangi, dan Hapus
-    document.querySelectorAll('button[data-action="add"]').forEach(button => {
-        button.addEventListener('click', function () {
-            showPopup(this.dataset.index, 'add');
-        });
+        form.reset();
     });
 
-    document.querySelectorAll('button[data-action="subtract"]').forEach(button => {
-        button.addEventListener('click', function () {
-            showPopup(this.dataset.index, 'subtract');
-        });
+    /**
+     * Event listener untuk input pencarian.
+     */
+    searchInput.addEventListener('input', function () {
+        displayTabungan();
     });
 
-    document.querySelectorAll('.delete').forEach(button => {
-        button.addEventListener('click', function () {
-            deleteTabungan(this.dataset.index);
-        });
+    /**
+     * Event listener untuk filter kelas.
+     */
+    filterKelas.addEventListener('change', function () {
+        displayTabungan();
     });
-}
 
-/**
- * Menampilkan popup.
- * @param {number} index - Index dari tabungan yang dipilih.
- * @param {string} action - Aksi yang akan dilakukan ('add' atau 'subtract').
- */
-function showPopup(index, action) {
-    currentIndex = index;
-    currentAction = action;
-    popupTitle.textContent = action === 'add' ? 'Tambah Tabungan' : 'Kurangi Tabungan';
-    popup.style.display = 'flex';
-}
+    /**
+     * Event listener untuk tombol tutup popup.
+     */
+    closePopup.addEventListener('click', function () {
+        popup.style.display = 'none';
+    });
 
-/**
- * Menghapus data tabungan.
- * @param {number} index - Index dari tabungan yang akan dihapus.
- */
-function deleteTabungan(index) {
-    tabunganList.splice(index, 1);
-    updateLocalStorage();
+    /**
+     * Event listener untuk tombol di popup.
+     */
+    popupButton.addEventListener('click', function () {
+        const nominal = parseInt(popupNominal.value);
+        if (isNaN(nominal) || nominal &lt;= 0) {
+            showAlert('Nominal harus berupa angka positif');
+            return;
+        }
+
+        // Menambahkan atau mengurangi nominal tabungan
+        if (currentAction === 'add') {
+            const tabungan = tabunganList.find(tabungan => tabungan.id == currentId);
+            tabungan.nominal += nominal;
+        } else if (currentAction === 'subtract') {
+            const tabungan = tabunganList.find(tabungan => tabungan.id == currentId);
+            if (tabungan.nominal &lt; nominal) {
+                showAlert('Nominal tidak mencukupi untuk dikurangi');
+                return;
+            }
+            tabungan.nominal -= nominal;
+        }
+
+        updateLocalStorage();
+        displayTabungan();
+        popup.style.display = 'none';
+        popupNominal.value = '';
+    });
+
+    /**
+     * Event listener untuk tombol tutup peringatan.
+     */
+    closeWarningPopup.addEventListener('click', function () {
+        warningPopup.style.display = 'none';
+    });
+
+    /**
+     * Menampilkan data tabungan.
+     */
+    function displayTabungan() {
+        const searchText = searchInput.value.toLowerCase();
+        const selectedKelas = filterKelas.value;
+        tableBody.innerHTML = '';
+
+        // Menampilkan data tabungan yang sesuai dengan pencarian dan filter kelas
+        tabunganList
+            .filter(t => t.nama.toLowerCase().includes(searchText) &amp;&amp; (selectedKelas === "" || t.kelas === selectedKelas))
+            .forEach(tabungan => {
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    &lt;td>${tabungan.nama}&lt;/td>
+                    &lt;td>${tabungan.nominal}&lt;/td>
+                    &lt;td>${tabungan.kelas}&lt;/td>
+                    &lt;td>${tabungan.jurusan}&lt;/td>
+                    &lt;td>
+                        &lt;button data-id="${tabungan.id}" data-action="add">Tambah&lt;/button>
+                        &lt;button data-id="${tabungan.id}" data-action="subtract">Kurangi&lt;/button>
+                        &lt;button data-id="${tabungan.id}" class="delete">Hapus&lt;/button>
+                    &lt;/td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+        // Tambahkan event listener untuk tombol Tambah, Kurangi, dan Hapus
+        document.querySelectorAll('button[data-action="add"]').forEach(button => {
+            button.addEventListener('click', function () {
+                showPopup(this.dataset.id, 'add');
+            });
+        });
+
+        document.querySelectorAll('button[data-action="subtract"]').forEach(button => {
+            button.addEventListener('click', function () {
+                showPopup(this.dataset.id, 'subtract');
+            });
+        });
+
+        document.querySelectorAll('.delete').forEach(button => {
+            button.addEventListener('click', function () {
+                deleteTabungan(this.dataset.id);
+            });
+        });
+    }
+
+    /**
+     * Menampilkan popup.
+     * @param {number} id - ID dari tabungan yang dipilih.
+     * @param {string} action - Aksi yang akan dilakukan ('add' atau 'subtract').
+     */
+    function showPopup(id, action) {
+        currentId = parseInt(id); // memastikan currentId adalah angka
+        currentAction = action;
+        popupTitle.textContent = action === 'add' ? 'Tambah Tabungan' : 'Kurangi Tabungan';
+        popup.style.display = 'flex';
+    }
+
+    /**
+     * Menghapus data tabungan.
+     * @param {number} id - ID dari tabungan yang akan dihapus.
+     */
+    function deleteTabungan(id) {
+        const index = tabunganList.findIndex(tabungan => tabungan.id == id);
+        if (index !== -1) {
+            tabunganList.splice(index, 1);
+            updateLocalStorage();
+            displayTabungan();
+        }
+    }
+
+    /**
+     * Memperbarui localStorage dengan data tabungan.
+     */
+    function updateLocalStorage() {
+        localStorage.setItem('tabunganList', JSON.stringify(tabunganList));
+    }
+
+    /**
+     * Menampilkan pesan peringatan.
+     * @param {string} message - Pesan peringatan yang akan ditampilkan.
+     */
+    function showAlert(message) {
+        warningMessage.textContent = message;
+        warningPopup.style.display = 'flex';
+    }
+
+    // Menampilkan data tabungan saat halaman dimuat
     displayTabungan();
-}
 
-/**
- * Memperbarui localStorage dengan data tabungan.
- */
-function updateLocalStorage() {
-    localStorage.setItem('tabunganList', JSON.stringify(tabunganList));
-}
-
-/**
- * Menampilkan pesan peringatan.
- * @param {string} message - Pesan peringatan yang akan ditampilkan.
- */
-function showAlert(message) {
-    warningMessage.textContent = message;
-    warningPopup.style.display = 'flex';
-}
-
-// Menampilkan data tabungan saat halaman dimuat
-displayTabungan();
 </code></pre>
         </article>
     </section>
@@ -222,7 +239,7 @@ displayTabungan();
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.3</a> on Tue Jun 18 2024 19:23:23 GMT+0700 (Indochina Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.3</a> on Wed Jun 19 2024 19:39:50 GMT+0700 (Indochina Time)
 </footer>
 
 <script> prettyPrint(); </script>
